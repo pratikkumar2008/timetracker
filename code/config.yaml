@@ -6,13 +6,22 @@ capture:
   screenshot_dir: "../data/screenshots"
   image_format: "png"
   # Resize before sending to model — full retina res is overkill and slow
-  max_width: 786
+  max_width: 768
 
 # Model settings
 model:
   name:  "gemma4:26b" #"qwen3.6:27b" #"qwen3.6:latest"  # Update if your ollama tag differs — check `ollama list`
   ollama_host: "http://localhost:11434"
   timeout_seconds: 600
+
+# Distraction alerts
+alerts:
+  distraction_categories:
+    - Doomscroll
+    - Entertainment
+    - Social
+  threshold_minutes: 15
+  snooze_minutes: 30
 
 # Menu bar display settings
 menubar:

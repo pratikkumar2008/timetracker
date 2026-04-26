@@ -200,7 +200,6 @@ def main():
     categories = cfg["categories"]
     valid_cat_ids = {c["id"] for c in categories}
     prompt = build_prompt(categories)
-    print(prompt)
 
     screenshot_dir.mkdir(parents=True, exist_ok=True)
     ensure_csv_header(csv_path)

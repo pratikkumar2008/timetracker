@@ -1,6 +1,6 @@
 # timetracker
 
-Local-only time tracker for macOS using a vision LLM (Gemma 3 27B via Ollama).
+Local-only time tracker for macOS using a vision LLM (Gemma 4 26B via Ollama).
 
 Captures a screenshot every 60s, classifies it into one of 12 fixed categories,
 and surfaces the data three ways: append-only CSV log, daily markdown reports,

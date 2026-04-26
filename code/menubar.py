@@ -21,7 +21,7 @@ import subprocess
 import sys
 import threading
 from collections import Counter
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import rumps
@@ -115,6 +115,13 @@ class TimeTrackerMenu(rumps.App):
         self.code_dir: Path = Path(__file__).parent.resolve()
         self.capture_interval: int = cfg["capture"]["interval_seconds"]
 
+        alert_cfg = cfg.get("alerts", {})
+        self.distraction_cats: set[str] = set(alert_cfg.get("distraction_categories", []))
+        self.alert_threshold: int = int(alert_cfg.get("threshold_minutes", 15)) * 60
+        self.snooze_duration: int = int(alert_cfg.get("snooze_minutes", 30)) * 60
+        self._snoozed_until: datetime | None = None
+        self._alert_fired: bool = False
+
         mb = cfg.get("menubar", {})
         self.refresh_interval: int = int(mb.get("refresh_interval_seconds", 60))
         self.stale_threshold: int = int(mb.get("stale_threshold_seconds", 300))
@@ -139,6 +146,10 @@ class TimeTrackerMenu(rumps.App):
                                             callback=self._action_generate_report)
         self.action_refresh = rumps.MenuItem("Refresh now",
                                              callback=self._action_refresh_now)
+        self.action_snooze = rumps.MenuItem(
+            f"Snooze alerts ({alert_cfg.get('snooze_minutes', 30)}m)",
+            callback=self._action_snooze,
+        )
         self.action_quit = rumps.MenuItem("Quit", callback=self._action_quit)
 
         self.menu = [
@@ -151,6 +162,7 @@ class TimeTrackerMenu(rumps.App):
             None,
             self.action_report,
             self.action_refresh,
+            self.action_snooze,
             None,
             self.action_quit,
         ]
@@ -199,6 +211,9 @@ class TimeTrackerMenu(rumps.App):
                 else:
                     item.title = "  \u2014"
 
+            # ----- Distraction alert -----
+            self._check_distraction_alert(cat_breakdown)
+
             # ----- Status lines -----
             if rows:
                 last_ts = rows[-1]["_ts"]
@@ -214,6 +229,39 @@ class TimeTrackerMenu(rumps.App):
             else:
                 self.last_capture_item.title = "Last capture: \u2014"
                 self.capture_status_item.title = "Capture: no data yet"
+
+    def _check_distraction_alert(self, cat_breakdown: list[tuple[str, int]]):
+        now = datetime.now().astimezone()
+
+        if self._snoozed_until:
+            if now < self._snoozed_until:
+                remaining = int((self._snoozed_until - now).total_seconds() // 60)
+                self.action_snooze.title = f"Snoozed ({remaining}m left)"
+                return
+            else:
+                self._snoozed_until = None
+                self._alert_fired = False
+                self.action_snooze.title = f"Snooze alerts ({self.snooze_duration // 60}m)"
+
+        distraction_secs = sum(s for c, s in cat_breakdown if c in self.distraction_cats)
+
+        if distraction_secs < self.alert_threshold:
+            self._alert_fired = False
+            return
+
+        if not self._alert_fired:
+            self._alert_fired = True
+            mins = distraction_secs // 60
+            rumps.notification(
+                "Time Tracker",
+                "Distraction alert",
+                f"{mins}m on distracting activities today — consider a break.",
+            )
+
+    def _action_snooze(self, _sender):
+        self._snoozed_until = datetime.now().astimezone() + timedelta(seconds=self.snooze_duration)
+        self._alert_fired = False
+        log.info("alerts snoozed until %s", self._snoozed_until)
 
     def _compute_title(
         self,
