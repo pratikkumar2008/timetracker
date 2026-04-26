@@ -14,6 +14,7 @@ import logging
 import re
 import signal
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,7 +51,7 @@ SCT = None
 def get_sct():
     global SCT
     if SCT is None:
-        SCT = mss.mss()
+        SCT = mss.MSS()
     return SCT
 
 def capture_screenshot(screenshot_dir: Path, max_width: int) -> Path:
@@ -207,14 +208,14 @@ def main():
     log.info("log csv     → %s", csv_path)
 
     # Graceful Ctrl+C
-    stopping = {"flag": False}
+    stop_event = threading.Event()
     def _stop(signum, frame):
         log.info("stop requested (signal %d) — exiting after current iteration", signum)
-        stopping["flag"] = True
+        stop_event.set()
     signal.signal(signal.SIGINT, _stop)
     signal.signal(signal.SIGTERM, _stop)
 
-    while not stopping["flag"]:
+    while not stop_event.is_set():
         loop_start = time.monotonic()
         timestamp = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
@@ -230,7 +231,7 @@ def main():
                 "latency_ms": 0,
                 "raw_output": "",
             })
-            _sleep_remaining(loop_start, interval, stopping)
+            _sleep_remaining(loop_start, interval, stop_event)
             continue
 
         # Make screenshot path relative to data/ for portability
@@ -260,21 +261,17 @@ def main():
 
         log.info("[%s] %s | %dms | %s", timestamp, category, latency_ms, description[:80])
 
-        _sleep_remaining(loop_start, interval, stopping)
+        _sleep_remaining(loop_start, interval, stop_event)
 
     log.info("stopped cleanly")
 
 
-def _sleep_remaining(loop_start: float, interval: int, stopping: dict) -> None:
+def _sleep_remaining(loop_start: float, interval: int, stop_event: threading.Event) -> None:
     """Sleep until the next interval tick, but wake early if stopping."""
     elapsed = time.monotonic() - loop_start
     remaining = max(0.0, interval - elapsed)
-    if remaining == 0.0:
-        return
-    # Sleep in small chunks so Ctrl+C is responsive
-    end = time.monotonic() + remaining
-    while time.monotonic() < end and not stopping["flag"]:
-        time.sleep(min(0.5, end - time.monotonic()))
+    if remaining > 0.0:
+        stop_event.wait(timeout=remaining)
 
 
 if __name__ == "__main__":
