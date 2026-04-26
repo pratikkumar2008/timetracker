@@ -1,0 +1,12 @@
+# Core
+ollama>=0.4.0
+Pillow>=10.0.0
+PyYAML>=6.0
+mss>=9.0.1
+
+# Menu bar app
+rumps>=0.4.0
+pyobjc-framework-Cocoa>=10.0
+
+# Utilities
+python-dateutil>=2.8.2
