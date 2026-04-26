@@ -10,7 +10,7 @@ capture:
 
 # Model settings
 model:
-  name: "gemma4:27b"  # Update if your ollama tag differs — check `ollama list`
+  name: "gemma4:26b"  # Update if your ollama tag differs — check `ollama list`
   ollama_host: "http://localhost:11434"
   timeout_seconds: 60
 

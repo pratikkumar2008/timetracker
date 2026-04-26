@@ -19,7 +19,7 @@ All processing is on-device. Nothing leaves the Mac.
     conda activate myenv
     pip install -r requirements.txt
     # Make sure ollama is running and the configured model is pulled:
-    ollama pull gemma4:27b   # or whatever tag your config.yaml points to
+    ollama pull gemma4:26b   # or whatever tag your config.yaml points to
 
 ## Run
 
