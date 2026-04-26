@@ -2,7 +2,7 @@
 
 # Capture settings
 capture:
-  interval_seconds: 600
+  interval_seconds: 180
   screenshot_dir: "../data/screenshots"
   image_format: "png"
   # Resize before sending to model — full retina res is overkill and slow

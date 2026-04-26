@@ -90,20 +90,20 @@ Available categories:
 Look at the screenshot. Identify the active app, visible content, and any URLs or window titles. Pick the single best-fitting category.
 
 Respond ONLY with valid JSON, no other text, no markdown fences:
-{{"category": "<one of: {cat_ids}>", "description": "<one short sentence describing what is visible>"}}
+{{"category": "<one of: {cat_ids}>", "app_name": "<Name of the active application, e.g., VS Code, Chrome>", "window_title": "<Specific document name, URL, or window title>", "description": "<one short sentence describing what is visible>"}}
 """
 
 
 # ---------- Robust JSON extraction ----------
 _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
-def parse_model_output(raw: str, valid_categories: set[str]) -> tuple[str, str]:
+def parse_model_output(raw: str, valid_categories: set[str]) -> tuple[str, str, str, str]:
     """
-    Extract (category, description) from model output. Falls back gracefully.
-    Returns ("ERROR", reason) if parsing fails.
+    Extract (category, description, app_name, window_title) from model output. Falls back gracefully.
+    Returns ("ERROR", reason, "Unknown", "Unknown") if parsing fails.
     """
     if not raw or not raw.strip():
-        return "ERROR", "empty model output"
+        return "ERROR", "empty model output", "Unknown", "Unknown"
 
     # Strip markdown fences if present
     candidate = raw.strip()
@@ -115,22 +115,24 @@ def parse_model_output(raw: str, valid_categories: set[str]) -> tuple[str, str]:
     brace_start = candidate.find("{")
     brace_end = candidate.rfind("}")
     if brace_start == -1 or brace_end == -1 or brace_end <= brace_start:
-        return "ERROR", f"no JSON object found in: {raw[:120]!r}"
+        return "ERROR", f"no JSON object found in: {raw[:120]!r}", "Unknown", "Unknown"
 
     json_str = candidate[brace_start : brace_end + 1]
 
     try:
         parsed = json.loads(json_str)
     except json.JSONDecodeError as e:
-        return "ERROR", f"JSON parse failed: {e}; raw: {raw[:120]!r}"
+        return "ERROR", f"JSON parse failed: {e}; raw: {raw[:120]!r}", "Unknown", "Unknown"
 
     category = str(parsed.get("category", "")).strip()
     description = str(parsed.get("description", "")).strip()
+    app_name = str(parsed.get("app_name", "Unknown")).strip()
+    window_title = str(parsed.get("window_title", "Unknown")).strip()
 
     if category not in valid_categories:
-        return "ERROR", f"invalid category {category!r}; raw: {raw[:120]!r}"
+        return "ERROR", f"invalid category {category!r}; raw: {raw[:120]!r}", "Unknown", "Unknown"
 
-    return category, description
+    return category, description, app_name, window_title
 
 
 # ---------- Ollama call ----------
@@ -166,7 +168,7 @@ def classify(model: str, host: str, timeout: int, image_path: Path, prompt: str)
 
 
 # ---------- CSV logging ----------
-CSV_HEADER = ["timestamp", "screenshot_path", "category", "description", "latency_ms", "raw_output"]
+CSV_HEADER = ["timestamp", "screenshot_path", "category", "app_name", "window_title", "description", "latency_ms", "raw_output", "model"]
 
 def ensure_csv_header(csv_path: Path) -> None:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -227,9 +229,12 @@ def main():
                 "timestamp": timestamp,
                 "screenshot_path": "",
                 "category": "ERROR",
+                "app_name": "Unknown",
+                "window_title": "Unknown",
                 "description": f"capture_failed: {e}",
                 "latency_ms": 0,
                 "raw_output": "",
+                "model": model,
             })
             _sleep_remaining(loop_start, interval, stop_event)
             continue
@@ -242,21 +247,26 @@ def main():
 
         try:
             raw_output, latency_ms = classify(model, host, timeout, shot_path, prompt)
-            category, description = parse_model_output(raw_output, valid_cat_ids)
+            category, description, app_name, window_title = parse_model_output(raw_output, valid_cat_ids)
         except Exception as e:
             log.exception("classification failed: %s", e)
             raw_output = ""
             latency_ms = 0
             category = "ERROR"
             description = f"classify_failed: {e}"
+            app_name = "Unknown"
+            window_title = "Unknown"
 
         append_row(csv_path, {
             "timestamp": timestamp,
             "screenshot_path": rel_path,
             "category": category,
+            "app_name": app_name,
+            "window_title": window_title,
             "description": description,
             "latency_ms": latency_ms,
             "raw_output": raw_output,
+            "model": model,
         })
 
         log.info("[%s] %s | %dms | %s", timestamp, category, latency_ms, description[:80])
