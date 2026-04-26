@@ -10,7 +10,7 @@ All processing is on-device. Nothing leaves the Mac.
 
 ## Layout
 
-    ~/Downloads/timetracker/
+    timetracker/
     ├── code/   ← this repo (Python source)
     └── data/   ← screenshots, log.csv, daily reports (git-ignored)
 
