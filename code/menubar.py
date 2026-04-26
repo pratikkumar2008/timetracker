@@ -252,11 +252,24 @@ class TimeTrackerMenu(rumps.App):
         if not self._alert_fired:
             self._alert_fired = True
             mins = distraction_secs // 60
-            rumps.notification(
-                "Time Tracker",
-                "Distraction alert",
-                f"{mins}m on distracting activities today — consider a break.",
-            )
+            log.info("triggering distraction notification (%dm >= threshold)", mins)
+            try:
+                # Use osascript for 100% reliable notifications
+                title = "Time Tracker"
+                subtitle = "Distraction alert"
+                msg = f"{mins}m on distracting activities today — consider a break."
+                
+                # Add the 'sound name' parameter for a system ping
+                script = f'display notification "{msg}" with title "{title}" subtitle "{subtitle}" sound name "Basso"'
+                subprocess.run(["osascript", "-e", script], check=True)
+                
+                # Play a spoken audio alert in the background (takes ~4-5 seconds)
+                spoken_msg = f"Alert Pratik. You have been distracted for {mins} minutes. Please take a break."
+                subprocess.Popen(["say", spoken_msg])
+                
+                log.info("notification and spoken sound sent")
+            except Exception as e:
+                log.error("failed to send notification: %s", e)
 
     def _action_snooze(self, _sender):
         self._snoozed_until = datetime.now().astimezone() + timedelta(seconds=self.snooze_duration)
