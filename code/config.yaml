@@ -21,6 +21,7 @@ alerts:
     - Entertainment
     - Social
   threshold_minutes: 15
+  repeat_interval_minutes: 5
   snooze_minutes: 30
 
 # Menu bar display settings

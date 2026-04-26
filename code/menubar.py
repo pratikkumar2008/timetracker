@@ -118,9 +118,10 @@ class TimeTrackerMenu(rumps.App):
         alert_cfg = cfg.get("alerts", {})
         self.distraction_cats: set[str] = set(alert_cfg.get("distraction_categories", []))
         self.alert_threshold: int = int(alert_cfg.get("threshold_minutes", 15)) * 60
+        self.repeat_interval_mins: int = int(alert_cfg.get("repeat_interval_minutes", 5))
         self.snooze_duration: int = int(alert_cfg.get("snooze_minutes", 30)) * 60
         self._snoozed_until: datetime | None = None
-        self._alert_fired: bool = False
+        self._last_notified_mins: int = 0
 
         mb = cfg.get("menubar", {})
         self.refresh_interval: int = int(mb.get("refresh_interval_seconds", 60))
@@ -240,31 +241,48 @@ class TimeTrackerMenu(rumps.App):
                 return
             else:
                 self._snoozed_until = None
-                self._alert_fired = False
+                self._last_notified_mins = 0
                 self.action_snooze.title = f"Snooze alerts ({self.snooze_duration // 60}m)"
 
         distraction_secs = sum(s for c, s in cat_breakdown if c in self.distraction_cats)
+        mins = distraction_secs // 60
+
+        # Reset if time somehow goes backward (e.g., new day starts)
+        if mins < self._last_notified_mins:
+            self._last_notified_mins = 0
 
         if distraction_secs < self.alert_threshold:
-            self._alert_fired = False
+            self._last_notified_mins = 0
             return
 
-        if not self._alert_fired:
-            self._alert_fired = True
-            mins = distraction_secs // 60
+        # Fire if it's the first time crossing threshold OR if N more mins have passed
+        if self._last_notified_mins == 0 or (mins - self._last_notified_mins) >= self.repeat_interval_mins:
+            self._last_notified_mins = mins
+            
+            messages = {
+                15: "Distraction alert Pratik. You've hit your 15 mins limit.",
+                20: "Hey Pratik, you've been slacking for 20 mins. Get back to work!",
+                25: " Pratik, 25 minutes. Come on, let's refocus.",
+                30: "Seriously?  Pratik! 30 mins wasted. Close that tab NOW.",
+                35: "35 minutes  Pratik !!! You are literally stealing from your own future.",
+                40: "Bro. 40 minutes.  Pratik, your future self is disappointed.",
+                60: "AN HOUR OF SLACKING  Pratik!!!. What are you doing with your life 💀",
+            }
+            # Fallback for other intervals
+            msg = messages.get(mins, f"Still slacking  Pratik ... {mins} mins gone. Fix it.")
+            
             log.info("triggering distraction notification (%dm >= threshold)", mins)
             try:
                 # Use osascript for 100% reliable notifications
-                title = "Time Tracker"
+                title = "Study Agent 🚨"
                 subtitle = "Distraction alert"
-                msg = f"{mins}m on distracting activities today — consider a break."
                 
                 # Add the 'sound name' parameter for a system ping
                 script = f'display notification "{msg}" with title "{title}" subtitle "{subtitle}" sound name "Basso"'
                 subprocess.run(["osascript", "-e", script], check=True)
                 
-                # Play a spoken audio alert in the background (takes ~4-5 seconds)
-                spoken_msg = f"Alert Pratik. You have been distracted for {mins} minutes. Please take a break."
+                # Play a spoken audio alert in the background
+                spoken_msg = msg.replace("💀", "").replace("🚨", "")
                 subprocess.Popen(["say", spoken_msg])
                 
                 log.info("notification and spoken sound sent")
@@ -273,7 +291,7 @@ class TimeTrackerMenu(rumps.App):
 
     def _action_snooze(self, _sender):
         self._snoozed_until = datetime.now().astimezone() + timedelta(seconds=self.snooze_duration)
-        self._alert_fired = False
+        self._last_notified_mins = 0
         log.info("alerts snoozed until %s", self._snoozed_until)
 
     def _compute_title(
