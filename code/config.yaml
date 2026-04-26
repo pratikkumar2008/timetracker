@@ -10,7 +10,7 @@ capture:
 
 # Model settings
 model:
-  name: "gemma4:26b" #"qwen3.6:latest"  # Update if your ollama tag differs — check `ollama list`
+  name: "qwen3.6:27b" #"gemma4:26b" #"qwen3.6:latest"  # Update if your ollama tag differs — check `ollama list`
   ollama_host: "http://localhost:11434"
   timeout_seconds: 180
 

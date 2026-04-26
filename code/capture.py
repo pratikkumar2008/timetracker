@@ -45,6 +45,14 @@ def load_config(path: Path) -> dict:
 
 
 # ---------- Screenshot capture ----------
+SCT = None
+
+def get_sct():
+    global SCT
+    if SCT is None:
+        SCT = mss.mss()
+    return SCT
+
 def capture_screenshot(screenshot_dir: Path, max_width: int) -> Path:
     """Capture full screen, resize, save as PNG. Returns path."""
     now = datetime.now()
@@ -52,11 +60,11 @@ def capture_screenshot(screenshot_dir: Path, max_width: int) -> Path:
     day_dir.mkdir(parents=True, exist_ok=True)
     out_path = day_dir / f"{now.strftime('%H%M%S')}.png"
 
-    with mss.MSS() as sct:
-        # monitors[0] = all monitors combined, monitors[1] = primary
-        monitor = sct.monitors[1]
-        raw = sct.grab(monitor)
-        img = Image.frombytes("RGB", raw.size, raw.rgb)
+    sct = get_sct()
+    # monitors[0] = all monitors combined, monitors[1] = primary
+    monitor = sct.monitors[1]
+    raw = sct.grab(monitor)
+    img = Image.frombytes("RGB", raw.size, raw.rgb)
 
     # Resize if wider than max_width (preserves aspect ratio)
     if img.width > max_width:
@@ -64,7 +72,7 @@ def capture_screenshot(screenshot_dir: Path, max_width: int) -> Path:
         new_size = (max_width, int(img.height * ratio))
         img = img.resize(new_size, Image.LANCZOS)
 
-    img.save(out_path, "PNG", optimize=True)
+    img.save(out_path, "PNG")
     return out_path
 
 
@@ -125,9 +133,18 @@ def parse_model_output(raw: str, valid_categories: set[str]) -> tuple[str, str]:
 
 
 # ---------- Ollama call ----------
+CLIENT = None
+
+def get_client(host: str, timeout: int):
+    global CLIENT
+    if CLIENT is None:
+        CLIENT = ollama.Client(host=host, timeout=timeout)
+    return CLIENT
+
+
 def classify(model: str, host: str, timeout: int, image_path: Path, prompt: str) -> tuple[str, int]:
     """Call Ollama, return (raw_text_response, latency_ms)."""
-    client = ollama.Client(host=host, timeout=timeout)
+    client = get_client(host, timeout)
     t0 = time.monotonic()
     resp = client.chat(
         model=model,
