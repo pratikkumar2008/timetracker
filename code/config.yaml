@@ -2,7 +2,7 @@
 
 # Capture settings
 capture:
-  interval_seconds: 60
+  interval_seconds: 600
   screenshot_dir: "../data/screenshots"
   image_format: "png"
   # Resize before sending to model — full retina res is overkill and slow
@@ -10,9 +10,9 @@ capture:
 
 # Model settings
 model:
-  name: "qwen3.6:27b" #"gemma4:26b" #"qwen3.6:latest"  # Update if your ollama tag differs — check `ollama list`
+  name:  "gemma4:26b" #"qwen3.6:27b" #"qwen3.6:latest"  # Update if your ollama tag differs — check `ollama list`
   ollama_host: "http://localhost:11434"
-  timeout_seconds: 180
+  timeout_seconds: 600
 
 # Storage
 storage:
