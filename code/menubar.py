@@ -260,16 +260,20 @@ class TimeTrackerMenu(rumps.App):
             self._last_notified_mins = mins
             
             messages = {
-                15: "Distraction alert Pratik. You've hit your 15 mins limit.",
-                20: "Hey Pratik, you've been slacking for 20 mins. Get back to work!",
-                25: " Pratik, 25 minutes. Come on, let's refocus.",
-                30: "Seriously?  Pratik! 30 mins wasted. Close that tab NOW.",
-                35: "35 minutes  Pratik !!! You are literally stealing from your own future.",
-                40: "Bro. 40 minutes.  Pratik, your future self is disappointed.",
-                60: "AN HOUR OF SLACKING  Pratik!!!. What are you doing with your life 💀",
+                15: "Distraction alert Pratik. You've hit your {mins} mins limit.",
+                20: "Hey Pratik, you've been slacking for {mins} mins. Get back to work!",
+                25: " Pratik, {mins} minutes. Come on, let's refocus.",
+                30: "Seriously?  Pratik! {mins} mins wasted. Close that tab NOW.",
+                35: "{mins} minutes  Pratik !!! You are literally stealing from your own future.",
+                40: "Bro. {mins} minutes.  Pratik, your future self is disappointed.",
+                60: "AN HOUR OF SLACKING  Pratik!!! {mins} mins gone. What are you doing with your life 💀",
             }
-            # Fallback for other intervals
-            msg = messages.get(mins, f"Still slacking  Pratik ... {mins} mins gone. Fix it.")
+            # Find the largest milestone you've crossed
+            best_key = max([k for k in messages.keys() if k <= mins], default=None)
+            if best_key:
+                msg = messages[best_key].format(mins=mins)
+            else:
+                msg = f"Still slacking Pratik ... {mins} mins gone. Fix it."
             
             log.info("triggering distraction notification (%dm >= threshold)", mins)
             try:
