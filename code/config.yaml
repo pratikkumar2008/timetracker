@@ -6,13 +6,13 @@ capture:
   screenshot_dir: "../data/screenshots"
   image_format: "png"
   # Resize before sending to model — full retina res is overkill and slow
-  max_width: 1280
+  max_width: 786
 
 # Model settings
 model:
-  name: "gemma4:26b"  # Update if your ollama tag differs — check `ollama list`
+  name: "gemma4:26b" #"qwen3.6:latest"  # Update if your ollama tag differs — check `ollama list`
   ollama_host: "http://localhost:11434"
-  timeout_seconds: 60
+  timeout_seconds: 180
 
 # Storage
 storage:
@@ -35,9 +35,9 @@ categories:
   - id: "Communication"
     description: "Email, Slack, professional messaging not tied to job hunt"
   - id: "Personal"
-    description: "Ranchi property analysis, family finances, personal admin, non-leisure personal tasks"
+    description: "Family matter analysis, family finances, personal admin, non-leisure personal tasks"
   - id: "Doomscroll"
-    description: "Twitter/X feed, Reddit browsing, LinkedIn feed, news scrolling — passive consumption"
+    description: "Twitter/X feed, Reddit browsing, LinkedIn feed, news scrolling, Youtube shorts — passive consumption"
   - id: "Rest"
     description: "Music apps, lunch, meditation, intentional downtime — minimal screen activity"
   - id: "Entertainment"
