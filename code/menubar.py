@@ -119,6 +119,7 @@ class TimeTrackerMenu(rumps.App):
         self.capture_interval: int = cfg["capture"]["interval_seconds"]
 
         alert_cfg = cfg.get("alerts", {})
+        self.username: str = alert_cfg.get("username", "User")
         self.distraction_cats: set[str] = set(alert_cfg.get("distraction_categories", []))
         self.alert_threshold: int = int(alert_cfg.get("threshold_minutes", 15)) * 60
         self.repeat_interval_mins: int = int(alert_cfg.get("repeat_interval_minutes", 5))
@@ -263,20 +264,20 @@ class TimeTrackerMenu(rumps.App):
             self._last_notified_mins = mins
             
             messages = {
-                15: "Distraction alert Pratik. You've hit your {mins} mins limit.",
-                20: "Hey Pratik, you've been slacking for {mins} mins. Get back to work!",
-                25: " Pratik, {mins} minutes. Come on, let's refocus.",
-                30: "Seriously?  Pratik! {mins} mins wasted. Close that tab NOW.",
-                35: "{mins} minutes  Pratik !!! You are literally stealing from your own future.",
-                40: "Bro. {mins} minutes.  Pratik, your future self is disappointed.",
-                60: "AN HOUR OF SLACKING  Pratik!!! {mins} mins gone. What are you doing with your life 💀",
+                15: "Distraction alert {name}. You've hit your {mins} mins limit.",
+                20: "Hey {name}, you've been slacking for {mins} mins. Get back to work!",
+                25: "{name}, {mins} minutes. Come on, let's refocus.",
+                30: "Seriously? {name}! {mins} mins wasted. Close that tab NOW.",
+                35: "{mins} minutes {name} !!! You are literally stealing from your own future.",
+                40: "Bro. {mins} minutes. {name}, your future self is disappointed.",
+                60: "AN HOUR OF SLACKING {name}!!! {mins} mins gone. What are you doing with your life 💀",
             }
             # Find the largest milestone you've crossed
             best_key = max([k for k in messages.keys() if k <= mins], default=None)
             if best_key:
-                msg = messages[best_key].format(mins=mins)
+                msg = messages[best_key].format(mins=mins, name=self.username)
             else:
-                msg = f"Still slacking Pratik ... {mins} mins gone. Fix it."
+                msg = f"Still slacking {self.username} ... {mins} mins gone. Fix it."
             
             log.info("triggering distraction notification (%dm >= threshold)", mins)
             try:

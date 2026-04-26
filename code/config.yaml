@@ -16,6 +16,7 @@ model:
 
 # Distraction alerts
 alerts:
+  username: "Pratik"
   distraction_categories:
     - Doomscroll
     - Entertainment
