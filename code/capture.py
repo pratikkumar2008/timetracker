@@ -82,15 +82,25 @@ def build_prompt(categories: list[dict]) -> str:
     """Build the classification prompt from the taxonomy in config."""
     cat_lines = "\n".join(f"- {c['id']}: {c['description']}" for c in categories)
     cat_ids = ", ".join(c["id"] for c in categories)
-    return f"""You are classifying a screenshot of a Mac desktop into exactly ONE category.
+    return f"""You are classifying a Mac desktop screenshot into exactly ONE of these categories:
 
-Available categories:
 {cat_lines}
 
-Look at the screenshot. Identify the active app, visible content, and any URLs or window titles. Pick the single best-fitting category.
+## Signal priority
+1. Active window first — its title bar, URL, and visible content are the strongest signal.
+2. Background windows and notifications are secondary evidence only.
+3. Pick the most specific matching category. Use `Idle` only if the screen is locked, blank, or genuinely uninterpretable.
 
-Respond ONLY with valid JSON, no other text, no markdown fences:
-{{"category": "<one of: {cat_ids}>", "app_name": "<Name of the active application, e.g., VS Code, Chrome>", "window_title": "<Specific document name, URL, or window title>", "description": "<one short sentence describing what is visible>"}}
+## Disambiguation rules
+- **YouTube**: lecture / tutorial / documentary → `Learning`; film, show, or non-educational content → `Entertainment`; Shorts or feed browsing → `Doomscroll`
+- **LinkedIn**: searching / reading job posts / messaging recruiters → `JobHunt`; scrolling the feed → `Doomscroll`
+- **ML content**: interview-prep focus (ML system design, boosting, model questions) → `InterviewPrep-ML`; general AI research, papers, news → `Learning`
+- **Messaging**: WhatsApp / iMessage / personal chats → `Social`; Slack / email in a professional context → `Communication`
+- **Rest vs Idle**: `Rest` is intentional downtime (music playing, away from desk); `Idle` is an unreadable or empty screen
+
+## Output
+Respond with valid JSON only — no markdown, no extra text:
+{{"reasoning": "<one sentence: which app/URL/title you saw and why this category fits>", "category": "<one of: {cat_ids}>", "app_name": "<active application name>", "window_title": "<document name, URL, or window title>", "description": "<one sentence describing what is visible>"}}
 """
 
 
