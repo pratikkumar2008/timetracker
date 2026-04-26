@@ -27,11 +27,14 @@ from pathlib import Path
 import rumps
 import yaml
 
+log_dir = Path(__file__).parent.resolve().parent / "data" / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    filename="/tmp/timetracker_menubar.log",
+    filename=str(log_dir / "menubar.log"),
     filemode="a",
 )
 log = logging.getLogger("menubar")

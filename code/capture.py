@@ -24,10 +24,17 @@ import yaml
 from PIL import Image
 
 # ---------- Logging ----------
+log_dir = Path(__file__).parent.resolve().parent / "data" / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_dir / "capture.log", mode="a"),
+        logging.StreamHandler()
+    ]
 )
 log = logging.getLogger("timetracker")
 
